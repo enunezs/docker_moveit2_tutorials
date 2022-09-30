@@ -50,8 +50,8 @@ RUN apt-get update && apt-get install -y \
 
 #RUN source /opt/ros/foxy/setup.bash && \
 
-RUN mkdir -p ~/ws_moveit2/src && \
-	cd ~/ws_moveit2/src && \
+RUN mkdir -p $HOME/ws_moveit2/src && \
+	cd $HOME/ws_moveit2/src && \
 	git clone https://github.com/ros-planning/moveit2_tutorials -b foxy --depth 1 && \
 	vcs import < moveit2_tutorials/moveit2_tutorials.repos && \
 	apt-get update && rosdep install -r --from-paths . --ignore-src --rosdistro $ROS_DISTRO -y 
@@ -61,6 +61,9 @@ RUN source /opt/ros/foxy/setup.bash && \
 	
 WORKDIR $HOME
 
-RUN echo 'source $HOME/ws_moveit2/install/setup.bash' >> $HOME/.bashrc
+#RUN echo 'source $HOME/ws_moveit2/install/setup.bash' >> $HOME/.bashrc
+RUN echo 'source /opt/ros/foxy/setup.sh && source $HOME/ws_moveit2/install/setup.bash' >> $HOME/.bashrc
+
+CMD ["ros2", "launch", "moveit2_tutorials", "servo_teleop.launch.py"]
 
 #RUN echo "source /etc/setup.bash" >> /etc/bash.bashrc
