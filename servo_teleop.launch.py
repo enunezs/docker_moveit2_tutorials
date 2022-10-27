@@ -9,6 +9,8 @@ from launch.actions import ExecuteProcess
 import xacro
 
 
+
+# explain the following code
 def load_file(package_name, file_path):
     package_path = get_package_share_directory(package_name)
     absolute_file_path = os.path.join(package_path, file_path)
@@ -136,10 +138,17 @@ def generate_launch_description():
                 name="joy_node",
                 extra_arguments=[{"use_intra_process_comms": True}],
             ),
+
         ],
         output="screen",
     )
-
+    #rviz_node, 
     return LaunchDescription(
-        [rviz_node, ros2_control_node, container] + load_controllers
+        [ros2_control_node, container] + load_controllers
     )
+    
+    
+    
+"""
+
+"""

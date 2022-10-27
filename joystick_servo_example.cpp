@@ -119,20 +119,24 @@ bool convertJoyToCmd(const std::vector<float>& axes, const std::vector<int>& but
     return false;
   }
 
+  //Custom parameters for speed control
+  double cartesian_speed = 0.50;
+
   // The bread and butter: map buttons to twist commands
-  twist->twist.linear.z = axes[RIGHT_STICK_Y];
-  twist->twist.linear.y = axes[RIGHT_STICK_X];
+  twist->twist.linear.z = axes[RIGHT_STICK_Y]*cartesian_speed;
+  twist->twist.linear.y = axes[RIGHT_STICK_X]*cartesian_speed;
 
   double lin_x_right = -0.5 * (axes[RIGHT_TRIGGER] - AXIS_DEFAULTS.at(RIGHT_TRIGGER));
   double lin_x_left = 0.5 * (axes[LEFT_TRIGGER] - AXIS_DEFAULTS.at(LEFT_TRIGGER));
-  twist->twist.linear.x = lin_x_right + lin_x_left;
+  twist->twist.linear.x = (lin_x_right + lin_x_left)*cartesian_speed;
 
-  twist->twist.angular.y = axes[LEFT_STICK_Y];
-  twist->twist.angular.x = axes[LEFT_STICK_X];
+  double rot_speed = 1.0;
+  twist->twist.angular.y = axes[LEFT_STICK_Y]*rot_speed;
+  twist->twist.angular.x = axes[LEFT_STICK_X]*rot_speed;
 
   double roll_positive = buttons[RIGHT_BUMPER];
   double roll_negative = -1 * (buttons[LEFT_BUMPER]);
-  twist->twist.angular.z = roll_positive + roll_negative;
+  twist->twist.angular.z = (roll_positive + roll_negative)*rot_speed;
 
   return true;
 }
@@ -178,29 +182,56 @@ public:
       collision_object.header.frame_id = "panda_link0";
       collision_object.id = "box";
 
+      // Bottom
       shape_msgs::msg::SolidPrimitive table_1;
       table_1.type = table_1.BOX;
-      table_1.dimensions = { 0.4, 0.6, 0.03 };
+      table_1.dimensions = { 1.0, 1.0, 0.05 };
 
       geometry_msgs::msg::Pose table_1_pose;
-      table_1_pose.position.x = 0.6;
+      table_1_pose.position.x = 0.50;
       table_1_pose.position.y = 0.0;
-      table_1_pose.position.z = 0.4;
+      table_1_pose.position.z = 0.0;
 
-      /*
+      // Top
       shape_msgs::msg::SolidPrimitive table_2;
       table_2.type = table_2.BOX;
-      table_2.dimensions = { 0.6, 0.4, 0.03 };
+      table_2.dimensions = { 1.0, 1.0, 0.05  };
 
       geometry_msgs::msg::Pose table_2_pose;
-      table_2_pose.position.x = 0.0;
-      table_2_pose.position.y = 0.5;
-      table_2_pose.position.z = 0.25;
-      */
+      table_2_pose.position.x = 0.5;
+      table_2_pose.position.y = 0.0;
+      table_2_pose.position.z = 1.0;
+      
+      //Make another two tables for the sides 
+      shape_msgs::msg::SolidPrimitive table_3;
+      table_3.type = table_3.BOX;
+      table_3.dimensions = { 1.0,  0.05, 1.0 };
+
+      geometry_msgs::msg::Pose table_3_pose;
+      table_3_pose.position.x = 0.5;
+      table_3_pose.position.y = 0.5;
+      table_3_pose.position.z = 0.5;
+
+      shape_msgs::msg::SolidPrimitive table_4;
+      table_4.type = table_4.BOX;
+      table_4.dimensions = { 1.0,  0.05, 1.0 };
+
+      geometry_msgs::msg::Pose table_4_pose;
+      table_4_pose.position.x = 0.5;
+      table_4_pose.position.y = -0.5;
+      table_4_pose.position.z = 0.5;
+
+      // Make one for the front
+
+
       collision_object.primitives.push_back(table_1);
+      collision_object.primitives.push_back(table_2);
+      collision_object.primitives.push_back(table_3);
+      collision_object.primitives.push_back(table_4);
       collision_object.primitive_poses.push_back(table_1_pose);
-      //collision_object.primitives.push_back(table_2);
-      //collision_object.primitive_poses.push_back(table_2_pose);
+      collision_object.primitive_poses.push_back(table_2_pose);
+      collision_object.primitive_poses.push_back(table_3_pose);
+      collision_object.primitive_poses.push_back(table_4_pose);
       collision_object.operation = collision_object.ADD;
 
       moveit_msgs::msg::PlanningSceneWorld psw;
