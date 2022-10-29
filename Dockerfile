@@ -73,6 +73,8 @@ RUN source /opt/ros/foxy/setup.bash && \
 # launch file
 WORKDIR $HOME/ws_moveit2_tut
 COPY servo_teleop.launch.py $HOME/ws_moveit2_tut/src/moveit2_tutorials/doc/realtime_servo/launch/
+COPY devel_servo_teleop.launch.py $HOME/ws_moveit2_tut/src/moveit2_tutorials/doc/realtime_servo/launch/
+COPY custom_controller.launch.py $HOME/ws_moveit2_tut/src/moveit2_tutorials/doc/realtime_servo/launch/
 RUN source /opt/ros/foxy/setup.bash && \ 
 	colcon build --packages-select moveit2_tutorials --mixin release
 
@@ -84,6 +86,9 @@ RUN echo 'source /opt/ros/foxy/setup.sh && source $HOME/ws_moveit2/install/setup
 # RUN script
 #CMD ["ros2", "launch", "moveit2_tutorials", "servo_teleop.launch.py"]
 #RUN echo 'source /opt/ros/foxy/setup.sh && source $HOME/ws_moveit2/install/setup.bash && source $HOME/ws_moveit2_tut/install/setup.bash' >> $HOME/.bashrc
-RUN echo 'ros2 launch moveit2_tutorials servo_teleop.launch.py' >> $HOME/.bashrc
+
+#RUN echo 'ros2 launch moveit2_tutorials servo_teleop.launch.py' >> $HOME/.bashrc
+RUN echo 'ros2 launch moveit2_tutorials devel_servo_teleop.launch.py' >> $HOME/.bashrc
+#RUN echo 'ros2 launch moveit2_tutorials custom_controller.launch.py' >> $HOME/.bashrc
  
 

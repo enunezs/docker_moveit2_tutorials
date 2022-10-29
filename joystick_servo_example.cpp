@@ -42,10 +42,21 @@
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/joy.hpp>
 #include <geometry_msgs/msg/twist_stamped.hpp>
-#include <control_msgs/msg/joint_jog.hpp>
 #include <std_srvs/srv/trigger.hpp>
 #include <moveit_msgs/msg/planning_scene.hpp>
 #include <thread>
+#include <control_msgs/msg/joint_jog.hpp>
+
+// Grasp
+#include <control_msgs/action/gripper_command.hpp> // Theres also a msg version?
+
+
+// ros2 topic pub --once /turtle1/cmd_vel geometry_msgs/msg/Twist "{position: 0, max_effort: 10}"
+
+// ros2 action send_goal -f /panda_gripper/grasp franka_msgs/action/Grasp "{width: 0.010, speed: 0.05, force: 20}"
+// #include <franka_msgs/action/grasp.hpp>
+// moveit2 equivalent
+//#include <moveit_msgs/action/move_group.hpp>
 
 // We'll just set up parameters here
 const std::string JOY_TOPIC = "/joy";
@@ -97,7 +108,8 @@ std::map<Button, double> BUTTON_DEFAULTS;
  * @param joint A JointJog message to update in prep for publishing
  * @return return true if you want to publish a Twist, false if you want to publish a JointJog
  */
-bool convertJoyToCmd(const std::vector<float>& axes, const std::vector<int>& buttons,
+bool convertJoyToCmd(const std::vector<float>& axes, 
+                     const std::vector<int>& buttons,
                      std::unique_ptr<geometry_msgs::msg::TwistStamped>& twist,
                      std::unique_ptr<control_msgs::msg::JointJog>& joint)
 {
@@ -106,16 +118,26 @@ bool convertJoyToCmd(const std::vector<float>& axes, const std::vector<int>& but
   if (buttons[A] || buttons[B] || buttons[X] || buttons[Y] || axes[D_PAD_X] || axes[D_PAD_Y])
   {
     // Map the D_PAD to the proximal joints
-    joint->joint_names.push_back("panda_joint1");
-    joint->velocities.push_back(axes[D_PAD_X]);
-    joint->joint_names.push_back("panda_joint2");
+    joint->joint_names.push_back("panda_finger_joint1");
     joint->velocities.push_back(axes[D_PAD_Y]);
+    //joint->joint_names.push_back("panda_finger_joint2");
+    //joint->velocities.push_back(axes[D_PAD_X]);
+
+    //joint->joint_names.push_back("panda_joint2");
+    //joint->velocities.push_back(axes[D_PAD_Y]);
 
     // Map the diamond to the distal joints
-    joint->joint_names.push_back("panda_joint7");
-    joint->velocities.push_back(buttons[B] - buttons[X]);
-    joint->joint_names.push_back("panda_joint6");
-    joint->velocities.push_back(buttons[Y] - buttons[A]);
+    //joint->joint_names.push_back("panda_joint7");
+    //joint->velocities.push_back(buttons[B] - buttons[X]);
+    //joint->joint_names.push_back("panda_joint6");
+    //joint->velocities.push_back(buttons[Y] - buttons[A]);
+    
+    //send the grasp action
+    //rclcpp::Node::SharedPtr node = rclcpp::Node::make_shared("grasp_client");
+
+    
+    
+    
     return false;
   }
 
@@ -174,6 +196,10 @@ public:
     servo_start_client_->wait_for_service(std::chrono::seconds(1));
     servo_start_client_->async_send_request(std::make_shared<std_srvs::srv::Trigger::Request>());
 
+    //rclcpp::Node::SharedPtr node = rclcpp::Node::make_shared("grasp_client");
+
+    grasp_client_ = this->create_client<std_srvs::srv::Trigger>("/panda_gripper/grasp");
+
     // Load the collision scene asynchronously
     collision_pub_thread_ = std::thread([this]() {
       rclcpp::sleep_for(std::chrono::seconds(3));
@@ -190,7 +216,7 @@ public:
       geometry_msgs::msg::Pose table_1_pose;
       table_1_pose.position.x = 0.50;
       table_1_pose.position.y = 0.0;
-      table_1_pose.position.z = 0.0;
+      table_1_pose.position.z = -0.025;
 
       // Top
       shape_msgs::msg::SolidPrimitive table_2;
@@ -282,10 +308,14 @@ private:
   rclcpp::Publisher<control_msgs::msg::JointJog>::SharedPtr joint_pub_;
   rclcpp::Publisher<moveit_msgs::msg::PlanningScene>::SharedPtr collision_pub_;
   rclcpp::Client<std_srvs::srv::Trigger>::SharedPtr servo_start_client_;
+  rclcpp::Client<std_srvs::srv::Trigger>::SharedPtr grasp_client_;
 
   std::string frame_to_publish_;
 
   std::thread collision_pub_thread_;
+
+  // TODO add action client
+
 };  // class JoyToServoPub
 
 }  // namespace moveit_servo
