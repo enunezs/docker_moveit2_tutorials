@@ -42,6 +42,20 @@ RUN apt-get update && apt-get install -y \
 	ros-foxy-ament-cmake-clang-format \
 	python3-colcon-common-extensions
 
+# mystery dependencies
+RUN apt-get update && apt-get install -y \ 
+	ros-foxy-action-msgs \
+	ros-foxy-geometry-msgs \
+	ros-foxy-std-msgs \
+	ros-foxy-rosidl-runtime-c \
+	ros-foxy-builtin-interfaces \
+	ros-foxy-unique-identifier-msgs \
+	ros-foxy-trajectory-msgs
+
+# Magic?
+#RUN apt-get update &&  apt-get dist-upgrade -y
+#RUN apt-get update &&  apt-get upgrade
+
 ### Install moveit2
 RUN mkdir -p $HOME/ws_moveit2/src && \
 	cd $HOME/ws_moveit2/src && \
@@ -52,7 +66,6 @@ WORKDIR $HOME/ws_moveit2
 RUN source /opt/ros/foxy/setup.bash && \
 	colcon build --event-handlers desktop_notification- status- --cmake-args -DCMAKE_BUILD_TYPE=Release
 
-
 ### Install moveit2_tutorial 
 RUN mkdir -p $HOME/ws_moveit2_tut/src && \
 	cd $HOME/ws_moveit2_tut/src && \
@@ -62,15 +75,16 @@ RUN mkdir -p $HOME/ws_moveit2_tut/src && \
 WORKDIR $HOME/ws_moveit2_tut
 RUN source /opt/ros/foxy/setup.bash && \
 	colcon build --mixin release
-	
+
 ## Inject my modified scripts
-# Controller file
+# Controller file & cmake file
 WORKDIR $HOME/ws_moveit2
 COPY joystick_servo_example.cpp $HOME/ws_moveit2/src/moveit2/moveit_ros/moveit_servo/src/teleop_demo
+COPY CMakeLists.txt 			$HOME/ws_moveit2/src/moveit2/moveit_ros/moveit_servo
 RUN source /opt/ros/foxy/setup.bash && \ 
 	colcon build --packages-select moveit_servo 
 	
-# launch file
+# launch file 
 WORKDIR $HOME/ws_moveit2_tut
 COPY servo_teleop.launch.py $HOME/ws_moveit2_tut/src/moveit2_tutorials/doc/realtime_servo/launch/
 COPY devel_servo_teleop.launch.py $HOME/ws_moveit2_tut/src/moveit2_tutorials/doc/realtime_servo/launch/
@@ -88,7 +102,7 @@ RUN echo 'source /opt/ros/foxy/setup.sh && source $HOME/ws_moveit2/install/setup
 #RUN echo 'source /opt/ros/foxy/setup.sh && source $HOME/ws_moveit2/install/setup.bash && source $HOME/ws_moveit2_tut/install/setup.bash' >> $HOME/.bashrc
 
 #RUN echo 'ros2 launch moveit2_tutorials servo_teleop.launch.py' >> $HOME/.bashrc
-RUN echo 'ros2 launch moveit2_tutorials devel_servo_teleop.launch.py' >> $HOME/.bashrc
-#RUN echo 'ros2 launch moveit2_tutorials custom_controller.launch.py' >> $HOME/.bashrc
+#RUN echo 'ros2 launch moveit2_tutorials devel_servo_teleop.launch.py' >> $HOME/.bashrc
+RUN echo 'ros2 launch moveit2_tutorials custom_controller.launch.py' >> $HOME/.bashrc
  
 

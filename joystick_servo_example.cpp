@@ -47,13 +47,24 @@
 #include <thread>
 #include <control_msgs/msg/joint_jog.hpp>
 
-// Grasp
-#include <control_msgs/action/gripper_command.hpp> // Theres also a msg version?
+// Action / Grasp
+/*
+#include "rclcpp_action/rclcpp_action.hpp"
+#include <control_msgs/action/gripper_command.hpp> 
+#include <control_msgs/msg/gripper_command.hpp> 
+*/
+
+// ros2 action send_goal /panda_gripper/gripper_action control_msgs/action/GripperCommand "{command: {position: 0.02, max_effort: 0.1}}"
+
+// ros-foxy-action-msgs
+// ros-foxy-geometry-msgs
+// ros-foxy-std-msgs
+// ros-foxy-rosidl-runtime-c
+// ros-foxy-builtin-interfaces
+// ros-foxy-unique-identifier-msgs
+// ros-foxy-trajectory-msgs
 
 
-// ros2 topic pub --once /turtle1/cmd_vel geometry_msgs/msg/Twist "{position: 0, max_effort: 10}"
-
-// ros2 action send_goal -f /panda_gripper/grasp franka_msgs/action/Grasp "{width: 0.010, speed: 0.05, force: 20}"
 // #include <franka_msgs/action/grasp.hpp>
 // moveit2 equivalent
 //#include <moveit_msgs/action/move_group.hpp>
@@ -120,6 +131,11 @@ bool convertJoyToCmd(const std::vector<float>& axes,
     // Map the D_PAD to the proximal joints
     joint->joint_names.push_back("panda_finger_joint1");
     joint->velocities.push_back(axes[D_PAD_Y]);
+
+    // * call a send goal function
+    // broadcast action to open/close gripper
+
+
     //joint->joint_names.push_back("panda_finger_joint2");
     //joint->velocities.push_back(axes[D_PAD_X]);
 
@@ -309,6 +325,10 @@ private:
   rclcpp::Publisher<moveit_msgs::msg::PlanningScene>::SharedPtr collision_pub_;
   rclcpp::Client<std_srvs::srv::Trigger>::SharedPtr servo_start_client_;
   rclcpp::Client<std_srvs::srv::Trigger>::SharedPtr grasp_client_;
+
+  // set up action client
+  // TODO
+  // rclcpp_action::Client<control_msgs::action::FollowJointTrajectory>::SharedPtr action_client_;
 
   std::string frame_to_publish_;
 

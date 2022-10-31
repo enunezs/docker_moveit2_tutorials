@@ -96,6 +96,15 @@ def generate_launch_description():
             )
         ]
 
+    """
+                ComposableNode(
+                package="robot_state_publisher",
+                plugin="robot_state_publisher::RobotStatePublisher",
+                name="robot_state_publisher",
+                parameters=[robot_description],
+            ),
+    """
+
     # Launch as much as possible in components
     container = ComposableNodeContainer(
         name="moveit_servo_demo_container",
@@ -103,12 +112,7 @@ def generate_launch_description():
         package="rclcpp_components",
         executable="component_container",
         composable_node_descriptions=[
-            ComposableNode(
-                package="robot_state_publisher",
-                plugin="robot_state_publisher::RobotStatePublisher",
-                name="robot_state_publisher",
-                parameters=[robot_description],
-            ),
+
             ComposableNode(
                 package="tf2_ros",
                 plugin="tf2_ros::StaticTransformBroadcasterNode",
