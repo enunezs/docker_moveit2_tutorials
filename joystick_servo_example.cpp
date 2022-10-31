@@ -48,11 +48,9 @@
 #include <control_msgs/msg/joint_jog.hpp>
 
 // Action / Grasp
-/*
 #include "rclcpp_action/rclcpp_action.hpp"
 #include <control_msgs/action/gripper_command.hpp> 
-#include <control_msgs/msg/gripper_command.hpp> 
-*/
+//#include <control_msgs/msg/gripper_command.hpp> 
 
 // ros2 action send_goal /panda_gripper/gripper_action control_msgs/action/GripperCommand "{command: {position: 0.02, max_effort: 0.1}}"
 
@@ -110,92 +108,15 @@ enum Button
 std::map<Axis, double> AXIS_DEFAULTS = { { LEFT_TRIGGER, 1.0 }, { RIGHT_TRIGGER, 1.0 } };
 std::map<Button, double> BUTTON_DEFAULTS;
 
-// To change controls or setup a new controller, all you should to do is change the above enums and the follow 2
-// functions
-/** \brief // This converts a joystick axes and buttons array to a TwistStamped or JointJog message
- * @param axes The vector of continuous controller joystick axes
- * @param buttons The vector of discrete controller button values
- * @param twist A TwistStamped message to update in prep for publishing
- * @param joint A JointJog message to update in prep for publishing
- * @return return true if you want to publish a Twist, false if you want to publish a JointJog
- */
-bool convertJoyToCmd(const std::vector<float>& axes, 
-                     const std::vector<int>& buttons,
-                     std::unique_ptr<geometry_msgs::msg::TwistStamped>& twist,
-                     std::unique_ptr<control_msgs::msg::JointJog>& joint)
-{
-  // Give joint jogging priority because it is only buttons
-  // If any joint jog command is requested, we are only publishing joint commands
-  if (buttons[A] || buttons[B] || buttons[X] || buttons[Y] || axes[D_PAD_X] || axes[D_PAD_Y])
-  {
-    // Map the D_PAD to the proximal joints
-    joint->joint_names.push_back("panda_finger_joint1");
-    joint->velocities.push_back(axes[D_PAD_Y]);
-
-    // * call a send goal function
-    // broadcast action to open/close gripper
-
-
-    //joint->joint_names.push_back("panda_finger_joint2");
-    //joint->velocities.push_back(axes[D_PAD_X]);
-
-    //joint->joint_names.push_back("panda_joint2");
-    //joint->velocities.push_back(axes[D_PAD_Y]);
-
-    // Map the diamond to the distal joints
-    //joint->joint_names.push_back("panda_joint7");
-    //joint->velocities.push_back(buttons[B] - buttons[X]);
-    //joint->joint_names.push_back("panda_joint6");
-    //joint->velocities.push_back(buttons[Y] - buttons[A]);
-    
-    //send the grasp action
-    //rclcpp::Node::SharedPtr node = rclcpp::Node::make_shared("grasp_client");
-
-    
-    
-    
-    return false;
-  }
-
-  //Custom parameters for speed control
-  double cartesian_speed = 0.50;
-
-  // The bread and butter: map buttons to twist commands
-  twist->twist.linear.z = axes[RIGHT_STICK_Y]*cartesian_speed;
-  twist->twist.linear.y = axes[RIGHT_STICK_X]*cartesian_speed;
-
-  double lin_x_right = -0.5 * (axes[RIGHT_TRIGGER] - AXIS_DEFAULTS.at(RIGHT_TRIGGER));
-  double lin_x_left = 0.5 * (axes[LEFT_TRIGGER] - AXIS_DEFAULTS.at(LEFT_TRIGGER));
-  twist->twist.linear.x = (lin_x_right + lin_x_left)*cartesian_speed;
-
-  double rot_speed = 1.0;
-  twist->twist.angular.y = axes[LEFT_STICK_Y]*rot_speed;
-  twist->twist.angular.x = axes[LEFT_STICK_X]*rot_speed;
-
-  double roll_positive = buttons[RIGHT_BUMPER];
-  double roll_negative = -1 * (buttons[LEFT_BUMPER]);
-  twist->twist.angular.z = (roll_positive + roll_negative)*rot_speed;
-
-  return true;
-}
-
-/** \brief // This should update the frame_to_publish_ as needed for changing command frame via controller
- * @param frame_name Set the command frame to this
- * @param buttons The vector of discrete controller button values
- */
-void updateCmdFrame(std::string& frame_name, const std::vector<int>& buttons)
-{
-  if (buttons[CHANGE_VIEW] && frame_name == EEF_FRAME_ID)
-    frame_name = BASE_FRAME_ID;
-  else if (buttons[MENU] && frame_name == BASE_FRAME_ID)
-    frame_name = EEF_FRAME_ID;
-}
-
 namespace moveit_servo
 {
 class JoyToServoPub : public rclcpp::Node
 {
 public:
+  //control_msgs/action/gripper_command.hpp
+  using GripperCommand = control_msgs::action::GripperCommand;
+  using GoalHandleGripperCommand= rclcpp_action::ClientGoalHandle<GripperCommand>;
+
   JoyToServoPub(const rclcpp::NodeOptions& options)
     : Node("joy_to_twist_publisher", options), frame_to_publish_(BASE_FRAME_ID)
   {
@@ -211,6 +132,10 @@ public:
     servo_start_client_ = this->create_client<std_srvs::srv::Trigger>("/servo_server/start_servo");
     servo_start_client_->wait_for_service(std::chrono::seconds(1));
     servo_start_client_->async_send_request(std::make_shared<std_srvs::srv::Trigger::Request>());
+
+    //Create action client
+    this->client_ptr_ = rclcpp_action::create_client<GripperCommand>(
+      this,  "/panda_gripper/gripper_action");
 
     //rclcpp::Node::SharedPtr node = rclcpp::Node::make_shared("grasp_client");
 
@@ -301,8 +226,16 @@ public:
     // This call updates the frame for twist commands
     updateCmdFrame(frame_to_publish_, msg->buttons);
 
+    // Pointer to member function
+    /*
+    int (moveit_servo::JoyToServoPub:: * fp)(int); 
+    fp = &moveit_servo::JoyToServoPub::send_grasper_goal; 
+    */
     // Convert the joystick message to Twist or JointJog and publish
-    if (convertJoyToCmd(msg->axes, msg->buttons, twist_msg, joint_msg))
+    if (convertJoyToCmd(msg->axes, 
+                        msg->buttons, 
+                        twist_msg, 
+                        joint_msg))
     {
       // publish the TwistStamped
       twist_msg->header.frame_id = frame_to_publish_;
@@ -318,6 +251,133 @@ public:
     }
   }
 
+
+  // To change controls or setup a new controller, all you should to do is change the above enums and the follow 2
+  // functions
+  /** \brief // This converts a joystick axes and buttons array to a TwistStamped or JointJog message
+   * @param axes The vector of continuous controller joystick axes
+   * @param buttons The vector of discrete controller button values
+   * @param twist A TwistStamped message to update in prep for publishing
+   * @param joint A JointJog message to update in prep for publishing
+   * @return return true if you want to publish a Twist, false if you want to publish a JointJog
+   */
+  bool convertJoyToCmd(const std::vector<float>& axes, 
+                      const std::vector<int>& buttons,
+                      std::unique_ptr<geometry_msgs::msg::TwistStamped>& twist,
+                      std::unique_ptr<control_msgs::msg::JointJog>& joint )  {
+                        
+    // Give joint jogging priority because it is only buttons
+    // If any joint jog command is requested, we are only publishing joint commands
+    if (buttons[A] || buttons[B] || buttons[X] || buttons[Y] || axes[D_PAD_X] || axes[D_PAD_Y])
+    {
+      // Map the D_PAD to the proximal joints
+      joint->joint_names.push_back("panda_finger_joint1");
+      joint->velocities.push_back(axes[D_PAD_Y]);
+
+      if (buttons[A]){
+        send_grasper_goal(0.03f);
+      } else if (buttons[B]){
+        send_grasper_goal(0.00f);
+      }
+
+      
+
+
+      // * call a send goal function
+      // broadcast action to open/close gripper
+
+
+
+      //joint->joint_names.push_back("panda_finger_joint2");
+      //joint->velocities.push_back(axes[D_PAD_X]);
+
+      //joint->joint_names.push_back("panda_joint2");
+      //joint->velocities.push_back(axes[D_PAD_Y]);
+
+      // Map the diamond to the distal joints
+      //joint->joint_names.push_back("panda_joint7");
+      //joint->velocities.push_back(buttons[B] - buttons[X]);
+      //joint->joint_names.push_back("panda_joint6");
+      //joint->velocities.push_back(buttons[Y] - buttons[A]);
+      
+      //send the grasp action
+      //rclcpp::Node::SharedPtr node = rclcpp::Node::make_shared("grasp_client");
+
+      
+      return false;
+    }
+
+
+
+    //Custom parameters for speed control
+    double cartesian_speed = 0.50;
+
+    // The bread and butter: map buttons to twist commands
+    twist->twist.linear.z = axes[RIGHT_STICK_Y]*cartesian_speed;
+    twist->twist.linear.y = axes[RIGHT_STICK_X]*cartesian_speed;
+
+    double lin_x_right = -0.5 * (axes[RIGHT_TRIGGER] - AXIS_DEFAULTS.at(RIGHT_TRIGGER));
+    double lin_x_left = 0.5 * (axes[LEFT_TRIGGER] - AXIS_DEFAULTS.at(LEFT_TRIGGER));
+    twist->twist.linear.x = (lin_x_right + lin_x_left)*cartesian_speed;
+
+    double rot_speed = 1.0;
+    twist->twist.angular.y = axes[LEFT_STICK_Y]*rot_speed;
+    twist->twist.angular.x = axes[LEFT_STICK_X]*rot_speed;
+
+    double roll_positive = buttons[RIGHT_BUMPER];
+    double roll_negative = -1 * (buttons[LEFT_BUMPER]);
+    twist->twist.angular.z = (roll_positive + roll_negative)*rot_speed;
+
+    return true;
+  }
+
+  /** \brief // This should update the frame_to_publish_ as needed for changing command frame via controller
+   * @param frame_name Set the command frame to this
+   * @param buttons The vector of discrete controller button values
+   */
+  void updateCmdFrame(std::string& frame_name, const std::vector<int>& buttons)
+  {
+    if (buttons[CHANGE_VIEW] && frame_name == EEF_FRAME_ID)
+      frame_name = BASE_FRAME_ID;
+    else if (buttons[MENU] && frame_name == BASE_FRAME_ID)
+      frame_name = EEF_FRAME_ID;
+  }
+
+  
+  void send_grasper_goal(float apperture_goal)
+  {
+    /**/
+    //using namespace std::placeholders;
+
+    if (!this->client_ptr_->wait_for_action_server()) {
+      RCLCPP_ERROR(this->get_logger(), "Action server not available after waiting");
+      //rclcpp::shutdown();
+    }
+
+    // ros2 action send_goal /panda_gripper/gripper_action control_msgs/action/GripperCommand "{command: {position: 0.02, max_effort: 0.1}}"
+
+    auto goal_msg = GripperCommand::Goal();
+    goal_msg.command.position = apperture_goal;
+    goal_msg.command.max_effort = 1;
+
+    RCLCPP_INFO(this->get_logger(), "Sending goal");
+
+    auto send_goal_options = rclcpp_action::Client<GripperCommand>::SendGoalOptions();
+    /*
+    send_goal_options.goal_response_callback =
+      std::bind(&FibonacciActionClient::goal_response_callback, this, _1);
+    send_goal_options.feedback_callback =
+      std::bind(&FibonacciActionClient::feedback_callback, this, _1, _2);
+    send_goal_options.result_callback =
+      std::bind(&FibonacciActionClient::result_callback, this, _1);
+    */
+    this->client_ptr_->async_send_goal(goal_msg, send_goal_options);
+  }
+
+
+
+
+
 private:
   rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr joy_sub_;
   rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr twist_pub_;
@@ -325,6 +385,9 @@ private:
   rclcpp::Publisher<moveit_msgs::msg::PlanningScene>::SharedPtr collision_pub_;
   rclcpp::Client<std_srvs::srv::Trigger>::SharedPtr servo_start_client_;
   rclcpp::Client<std_srvs::srv::Trigger>::SharedPtr grasp_client_;
+
+  // Add 
+  rclcpp_action::Client<GripperCommand>::SharedPtr client_ptr_;
 
   // set up action client
   // TODO
