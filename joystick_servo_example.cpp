@@ -365,6 +365,7 @@ public:
   {
       RCLCPP_INFO(this->get_logger(), "Response received: Setting grasp to innactive");
 
+    grasp_active = false;    
 
     switch (result.code) {
       case rclcpp_action::ResultCode::SUCCEEDED:
@@ -389,7 +390,6 @@ public:
     }
     */
 
-    grasp_active = false;    
     //RCLCPP_INFO(this->get_logger(), ss.str().c_str());
     //rclcpp::shutdown();
   }
