@@ -38,6 +38,8 @@
  *      Author    : Adam Pettinger
  */
 
+// Modified by Emanuel Nunez
+
 // ROS
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/joy.hpp>
@@ -50,22 +52,6 @@
 // Action / Grasp
 #include "rclcpp_action/rclcpp_action.hpp"
 #include <control_msgs/action/gripper_command.hpp> 
-//#include <control_msgs/msg/gripper_command.hpp> 
-
-// ros2 action send_goal /panda_gripper/gripper_action control_msgs/action/GripperCommand "{command: {position: 0.02, max_effort: 0.1}}"
-
-// ros-foxy-action-msgs
-// ros-foxy-geometry-msgs
-// ros-foxy-std-msgs
-// ros-foxy-rosidl-runtime-c
-// ros-foxy-builtin-interfaces
-// ros-foxy-unique-identifier-msgs
-// ros-foxy-trajectory-msgs
-
-
-// #include <franka_msgs/action/grasp.hpp>
-// moveit2 equivalent
-//#include <moveit_msgs/action/move_group.hpp>
 
 // We'll just set up parameters here
 const std::string JOY_TOPIC = "/joy";
@@ -261,6 +247,9 @@ public:
    * @param joint A JointJog message to update in prep for publishing
    * @return return true if you want to publish a Twist, false if you want to publish a JointJog
    */
+
+  float last_target = 0.0;
+  bool grasp_active = false;
   bool convertJoyToCmd(const std::vector<float>& axes, 
                       const std::vector<int>& buttons,
                       std::unique_ptr<geometry_msgs::msg::TwistStamped>& twist,
@@ -270,23 +259,13 @@ public:
     // If any joint jog command is requested, we are only publishing joint commands
     if (buttons[A] || buttons[B] || buttons[X] || buttons[Y] || axes[D_PAD_X] || axes[D_PAD_Y])
     {
-      // Map the D_PAD to the proximal joints
-      joint->joint_names.push_back("panda_finger_joint1");
-      joint->velocities.push_back(axes[D_PAD_Y]);
 
-      if (buttons[A]){
-        send_grasper_goal(0.03f);
-      } else if (buttons[B]){
-        send_grasper_goal(0.00f);
+      if (buttons[A] ){ //Open
+          send_grasper_goal(0.03f);
       }
-
-      
-
-
-      // * call a send goal function
-      // broadcast action to open/close gripper
-
-
+      if (buttons[B]){ //Close
+          send_grasper_goal(0.00f);
+      }
 
       //joint->joint_names.push_back("panda_finger_joint2");
       //joint->velocities.push_back(axes[D_PAD_X]);
@@ -351,6 +330,7 @@ public:
 
     if (!this->client_ptr_->wait_for_action_server()) {
       RCLCPP_ERROR(this->get_logger(), "Action server not available after waiting");
+      return;
       //rclcpp::shutdown();
     }
 
@@ -358,23 +338,61 @@ public:
 
     auto goal_msg = GripperCommand::Goal();
     goal_msg.command.position = apperture_goal;
-    goal_msg.command.max_effort = 1;
+    goal_msg.command.max_effort = 10.0;
 
-    RCLCPP_INFO(this->get_logger(), "Sending goal");
 
-    auto send_goal_options = rclcpp_action::Client<GripperCommand>::SendGoalOptions();
-    /*
-    send_goal_options.goal_response_callback =
-      std::bind(&FibonacciActionClient::goal_response_callback, this, _1);
-    send_goal_options.feedback_callback =
-      std::bind(&FibonacciActionClient::feedback_callback, this, _1, _2);
-    send_goal_options.result_callback =
-      std::bind(&FibonacciActionClient::result_callback, this, _1);
-    */
-    this->client_ptr_->async_send_goal(goal_msg, send_goal_options);
+    if (!grasp_active ){
+      RCLCPP_INFO(this->get_logger(), "Grasp innactive: Sending goal");
+
+      auto send_goal_options = rclcpp_action::Client<GripperCommand>::SendGoalOptions();
+      /*
+      send_goal_options.goal_response_callback =
+        std::bind(&FibonacciActionClient::goal_response_callback, this, _1);
+      send_goal_options.feedback_callback =
+        std::bind(&FibonacciActionClient::feedback_callback, this, _1, _2);
+      */
+      send_goal_options.result_callback =
+        std::bind(&JoyToServoPub::result_callback, this, std::placeholders::_1);
+    
+      grasp_active = true;
+      this->client_ptr_->async_send_goal(goal_msg, send_goal_options);
+    }
   }
 
 
+
+  void result_callback(const GoalHandleGripperCommand::WrappedResult & result)
+  {
+      RCLCPP_INFO(this->get_logger(), "Response received: Setting grasp to innactive");
+
+
+    switch (result.code) {
+      case rclcpp_action::ResultCode::SUCCEEDED:
+        break;
+      case rclcpp_action::ResultCode::ABORTED:
+        RCLCPP_ERROR(this->get_logger(), "Goal was aborted");
+        return;
+      case rclcpp_action::ResultCode::CANCELED:
+        RCLCPP_ERROR(this->get_logger(), "Goal was canceled");
+        return;
+      default:
+        RCLCPP_ERROR(this->get_logger(), "Unknown result code");
+        return;
+    }
+
+    /*
+    
+    std::stringstream ss;
+    ss << "Result received: ";
+    for (auto number : result.result->sequence) {
+      ss << number << " ";
+    }
+    */
+
+    grasp_active = false;    
+    //RCLCPP_INFO(this->get_logger(), ss.str().c_str());
+    //rclcpp::shutdown();
+  }
 
 
 

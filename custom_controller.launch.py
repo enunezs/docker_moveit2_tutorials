@@ -146,6 +146,14 @@ def generate_launch_description():
         ],
         output="screen",
     )
+    """
+                ComposableNode(
+                package="moveit_servo",
+                plugin="moveit_servo::JoyToServoPub",
+                name="controller_to_servo_node",
+                extra_arguments=[{"use_intra_process_comms": True}],
+            ),
+    """
     #rviz_node, 
     return LaunchDescription(
         [ros2_control_node, container] + load_controllers
