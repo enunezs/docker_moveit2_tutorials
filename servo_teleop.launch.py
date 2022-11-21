@@ -142,9 +142,9 @@ def generate_launch_description():
         ],
         output="screen",
     )
-    #rviz_node, 
+    # 
     return LaunchDescription(
-        [ros2_control_node, container] + load_controllers
+        [rviz_node, ros2_control_node, container] + load_controllers
     )
     
     

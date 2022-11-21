@@ -94,6 +94,24 @@ enum Button
 std::map<Axis, double> AXIS_DEFAULTS = { { LEFT_TRIGGER, 1.0 }, { RIGHT_TRIGGER, 1.0 } };
 std::map<Button, double> BUTTON_DEFAULTS;
 
+
+
+
+
+// TODO X Cartesian lock
+// ros2 service call /servo_server/change_drift_dimensions moveit_msgs/srv/ChangeControlDimensions "{control_x_translation : True}"
+
+
+
+
+
+
+
+
+
+
+
+
 namespace moveit_servo
 {
 class JoyToServoPub : public rclcpp::Node
@@ -135,56 +153,93 @@ public:
       collision_object.header.frame_id = "panda_link0";
       collision_object.id = "box";
 
-      // Bottom
-      shape_msgs::msg::SolidPrimitive table_1;
-      table_1.type = table_1.BOX;
-      table_1.dimensions = { 1.0, 1.0, 0.05 };
+      // Set variables for barrier thickness and limits
+      float barrier_thickness = 0.05; //m
+      float table_height = 0.17; //elvation, in m
+      float max_height = 0.83; //elvation, in m
+      float table_center = 0.20; //distance from robot, in m
+      float table_end = 0.90; //distance from robot, in m
+      float distance_to_user = 0.7; //0.450;
+      float distance_to_back = 0.7; //0.450;
+      float barrier_size = 0.700;
 
-      geometry_msgs::msg::Pose table_1_pose;
-      table_1_pose.position.x = 0.50;
-      table_1_pose.position.y = 0.0;
-      table_1_pose.position.z = -0.025;
+      // Bottom
+      shape_msgs::msg::SolidPrimitive barrier_bottom;
+      barrier_bottom.type = barrier_bottom.BOX;
+      barrier_bottom.dimensions = { barrier_size, barrier_size, barrier_thickness };
+
+      geometry_msgs::msg::Pose barrier_bottom_pose;
+      barrier_bottom_pose.position.x = 0.5;
+      barrier_bottom_pose.position.y = 0.0;
+      barrier_bottom_pose.position.z = table_height;
 
       // Top
-      shape_msgs::msg::SolidPrimitive table_2;
-      table_2.type = table_2.BOX;
-      table_2.dimensions = { 1.0, 1.0, 0.05  };
+      shape_msgs::msg::SolidPrimitive barrier_top;
+      barrier_top.type = barrier_top.BOX;
+      barrier_top.dimensions = { barrier_size, barrier_size, barrier_thickness  };
 
-      geometry_msgs::msg::Pose table_2_pose;
-      table_2_pose.position.x = 0.5;
-      table_2_pose.position.y = 0.0;
-      table_2_pose.position.z = 1.0;
+      geometry_msgs::msg::Pose barrier_top_pose;
+      barrier_top_pose.position.x = table_center;
+      barrier_top_pose.position.y = 0.0;
+      barrier_top_pose.position.z = max_height;
       
       //Make another two tables for the sides 
-      shape_msgs::msg::SolidPrimitive table_3;
-      table_3.type = table_3.BOX;
-      table_3.dimensions = { 1.0,  0.05, 1.0 };
+      //User's side
+      shape_msgs::msg::SolidPrimitive barrier_user_close;
+      barrier_user_close.type = barrier_user_close.BOX;
+      barrier_user_close.dimensions = { barrier_size,  barrier_thickness, barrier_size };
 
-      geometry_msgs::msg::Pose table_3_pose;
-      table_3_pose.position.x = 0.5;
-      table_3_pose.position.y = 0.5;
-      table_3_pose.position.z = 0.5;
+      geometry_msgs::msg::Pose barrier_user_close_pose;
+      barrier_user_close_pose.position.x = table_center;
+      barrier_user_close_pose.position.y = distance_to_user;
+      barrier_user_close_pose.position.z = (table_height + max_height)/2;
 
-      shape_msgs::msg::SolidPrimitive table_4;
-      table_4.type = table_4.BOX;
-      table_4.dimensions = { 1.0,  0.05, 1.0 };
+      // Opposite
+      shape_msgs::msg::SolidPrimitive barrier_user_far;
+      barrier_user_far.type = barrier_user_far.BOX;
+      barrier_user_far.dimensions = { barrier_size,  barrier_thickness, barrier_size };
 
-      geometry_msgs::msg::Pose table_4_pose;
-      table_4_pose.position.x = 0.5;
-      table_4_pose.position.y = -0.5;
-      table_4_pose.position.z = 0.5;
+      geometry_msgs::msg::Pose barrier_user_far_pose;
+      barrier_user_far_pose.position.x = table_center;
+      barrier_user_far_pose.position.y = -distance_to_back/2;
+      barrier_user_far_pose.position.z = (table_height + max_height)/2;
 
-      // Make one for the front
+      // Far from robot
+      shape_msgs::msg::SolidPrimitive barrier_robot_far;
+      barrier_robot_far.type = barrier_robot_far.BOX;
+      barrier_robot_far.dimensions = { barrier_thickness, barrier_size, barrier_size};
 
+      geometry_msgs::msg::Pose barrier_robot_far_pose;
+      barrier_robot_far_pose.position.x = table_end;
+      barrier_robot_far_pose.position.y = 0;
+      barrier_robot_far_pose.position.z = (table_height + max_height)/2;
 
-      collision_object.primitives.push_back(table_1);
-      collision_object.primitives.push_back(table_2);
-      collision_object.primitives.push_back(table_3);
-      collision_object.primitives.push_back(table_4);
-      collision_object.primitive_poses.push_back(table_1_pose);
-      collision_object.primitive_poses.push_back(table_2_pose);
-      collision_object.primitive_poses.push_back(table_3_pose);
-      collision_object.primitive_poses.push_back(table_4_pose);
+      // Close to robot
+      shape_msgs::msg::SolidPrimitive barrier_robot_close;
+      barrier_robot_close.type = barrier_robot_close.BOX;
+      barrier_robot_close.dimensions = { barrier_thickness, barrier_size, barrier_size };
+
+      geometry_msgs::msg::Pose barrier_robot_close_pose;
+      barrier_robot_close_pose.position.x = -table_center*2;
+      barrier_robot_close_pose.position.y = 0;
+      barrier_robot_close_pose.position.z = (table_height + max_height)/2;
+
+      // Load barriers
+      collision_object.primitives.push_back(barrier_bottom);
+      collision_object.primitives.push_back(barrier_top);
+      collision_object.primitives.push_back(barrier_user_close);
+      collision_object.primitives.push_back(barrier_user_far);
+      collision_object.primitives.push_back(barrier_robot_far);
+      collision_object.primitives.push_back(barrier_robot_close);
+
+      collision_object.primitive_poses.push_back(barrier_bottom_pose);
+      collision_object.primitive_poses.push_back(barrier_top_pose);
+      collision_object.primitive_poses.push_back(barrier_user_close_pose);
+      collision_object.primitive_poses.push_back(barrier_user_far_pose);
+      collision_object.primitive_poses.push_back(barrier_robot_far_pose);
+      collision_object.primitive_poses.push_back(barrier_robot_close_pose);
+
+      
       collision_object.operation = collision_object.ADD;
 
       moveit_msgs::msg::PlanningSceneWorld psw;
@@ -264,7 +319,7 @@ public:
           send_grasper_goal(0.03f);
       }
       if (buttons[B]){ //Close
-          send_grasper_goal(0.00f);
+          send_grasper_goal(0.0245f/2.0);
       }
 
       //joint->joint_names.push_back("panda_finger_joint2");
@@ -282,32 +337,35 @@ public:
       //send the grasp action
       //rclcpp::Node::SharedPtr node = rclcpp::Node::make_shared("grasp_client");
 
-      
-      return false;
+      //return false;
     }
 
-
-
     //Custom parameters for speed control
-    double cartesian_speed = 0.50;
+    double cartesian_speed = 0.150;
+    //double rot_speed = 0.0; //0.20;
 
     // The bread and butter: map buttons to twist commands
-    twist->twist.linear.z = axes[RIGHT_STICK_Y]*cartesian_speed;
-    twist->twist.linear.y = axes[RIGHT_STICK_X]*cartesian_speed;
+    double right_stick_y_val = axes[RIGHT_STICK_Y]*cartesian_speed;
+    double right_stick_x_val = axes[RIGHT_STICK_X]*cartesian_speed;
+    double lin_x_right = -(axes[RIGHT_TRIGGER] - AXIS_DEFAULTS.at(RIGHT_TRIGGER));
+    double lin_x_left = (axes[LEFT_TRIGGER] - AXIS_DEFAULTS.at(LEFT_TRIGGER));
+    double shoulder_val = (lin_x_right + lin_x_left)*cartesian_speed;
 
-    double lin_x_right = -0.5 * (axes[RIGHT_TRIGGER] - AXIS_DEFAULTS.at(RIGHT_TRIGGER));
-    double lin_x_left = 0.5 * (axes[LEFT_TRIGGER] - AXIS_DEFAULTS.at(LEFT_TRIGGER));
-    twist->twist.linear.x = (lin_x_right + lin_x_left)*cartesian_speed;
+    //Assign 
+    //NOTE: y and x have been swapped to match user position
+    twist->twist.linear.z = right_stick_y_val;
+    twist->twist.linear.y = -right_stick_x_val;
+    twist->twist.linear.x = shoulder_val;
 
-    double rot_speed = 1.0;
-    twist->twist.angular.y = axes[LEFT_STICK_Y]*rot_speed;
-    twist->twist.angular.x = axes[LEFT_STICK_X]*rot_speed;
-
+    /*
     double roll_positive = buttons[RIGHT_BUMPER];
     double roll_negative = -1 * (buttons[LEFT_BUMPER]);
+    
+    twist->twist.angular.y = axes[LEFT_STICK_Y]*rot_speed;
+    twist->twist.angular.x = axes[LEFT_STICK_X]*rot_speed;
     twist->twist.angular.z = (roll_positive + roll_negative)*rot_speed;
-
-    return true;
+    */
+    return true; // publish twist
   }
 
   /** \brief // This should update the frame_to_publish_ as needed for changing command frame via controller
@@ -338,7 +396,7 @@ public:
 
     auto goal_msg = GripperCommand::Goal();
     goal_msg.command.position = apperture_goal;
-    goal_msg.command.max_effort = 10.0;
+    goal_msg.command.max_effort = 20.0;
 
 
     if (!grasp_active ){

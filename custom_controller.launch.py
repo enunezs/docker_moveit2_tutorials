@@ -70,6 +70,7 @@ def generate_launch_description():
     )
 
     # ros2_control using FakeSystem as hardware
+    """
     ros2_controllers_path = os.path.join(
         get_package_share_directory("moveit_resources_panda_moveit_config"),
         "config",
@@ -84,10 +85,10 @@ def generate_launch_description():
             "stderr": "screen",
         },
     )
-
+    
     # Load controllers
     load_controllers = []
-    for controller in ["panda_arm_controller", "joint_state_broadcaster"]:
+    for controller in []: #["panda_arm_controller"]: # , "joint_state_broadcaster"]:
         load_controllers += [
             ExecuteProcess(
                 cmd=["ros2 run controller_manager spawner.py {}".format(controller)],
@@ -95,7 +96,7 @@ def generate_launch_description():
                 output="screen",
             )
         ]
-
+    """
     """
                 ComposableNode(
                 package="robot_state_publisher",
@@ -106,6 +107,15 @@ def generate_launch_description():
     """
 
     # Launch as much as possible in components
+    """
+                ComposableNode(
+                package="tf2_ros",
+                plugin="tf2_ros::StaticTransformBroadcasterNode",
+                name="static_tf2_broadcaster",
+                parameters=[{"child_frame_id": "/panda_link0", "frame_id": "/world"}],
+            ),
+            
+    """
     container = ComposableNodeContainer(
         name="moveit_servo_demo_container",
         namespace="/",
@@ -113,12 +123,7 @@ def generate_launch_description():
         executable="component_container",
         composable_node_descriptions=[
 
-            ComposableNode(
-                package="tf2_ros",
-                plugin="tf2_ros::StaticTransformBroadcasterNode",
-                name="static_tf2_broadcaster",
-                parameters=[{"child_frame_id": "/panda_link0", "frame_id": "/world"}],
-            ),
+
             ComposableNode(
                 package="moveit_servo",
                 plugin="moveit_servo::ServoServer",
@@ -146,17 +151,9 @@ def generate_launch_description():
         ],
         output="screen",
     )
-    """
-                ComposableNode(
-                package="moveit_servo",
-                plugin="moveit_servo::JoyToServoPub",
-                name="controller_to_servo_node",
-                extra_arguments=[{"use_intra_process_comms": True}],
-            ),
-    """
-    #rviz_node, 
+    #rviz_node, ros2_control_node,  
     return LaunchDescription(
-        [ros2_control_node, container] + load_controllers
+        [ container] #+ load_controllers
     )
     
     
