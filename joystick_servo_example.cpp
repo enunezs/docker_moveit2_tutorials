@@ -40,6 +40,9 @@
 
 // Modified by Emanuel Nunez
 
+
+
+
 // ROS
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/joy.hpp>
@@ -155,12 +158,12 @@ public:
 
       // Set variables for barrier thickness and limits
       float barrier_thickness = 0.05; //m
-      float table_height = 0.17; //elvation, in m
-      float max_height = 0.83; //elvation, in m
+      float table_height = 0.16; //elvation, in m
+      float max_height = 0.85; //elvation, in m
       float table_center = 0.20; //distance from robot, in m
       float table_end = 0.90; //distance from robot, in m
       float distance_to_user = 0.7; //0.450;
-      float distance_to_back = 0.7; //0.450;
+      //float distance_to_back = 0.7; //0.450;
       float barrier_size = 0.700;
 
       // Bottom
@@ -201,7 +204,7 @@ public:
 
       geometry_msgs::msg::Pose barrier_user_far_pose;
       barrier_user_far_pose.position.x = table_center;
-      barrier_user_far_pose.position.y = -distance_to_back/2;
+      barrier_user_far_pose.position.y = -distance_to_user;
       barrier_user_far_pose.position.z = (table_height + max_height)/2;
 
       // Far from robot
@@ -266,6 +269,7 @@ public:
 
     // This call updates the frame for twist commands
     updateCmdFrame(frame_to_publish_, msg->buttons);
+    //updateCmdFrame(BASE_FRAME_ID, msg->buttons);
 
     // Pointer to member function
     /*
@@ -280,11 +284,13 @@ public:
     {
       // publish the TwistStamped
       twist_msg->header.frame_id = frame_to_publish_;
+      //twist_msg->header.frame_id = BASE_FRAME_ID;
       twist_msg->header.stamp = this->now();
       twist_pub_->publish(std::move(twist_msg));
     }
     else
     {
+      return;
       // publish the JointJog
       joint_msg->header.stamp = this->now();
       joint_msg->header.frame_id = "panda_link3";
@@ -316,10 +322,10 @@ public:
     {
 
       if (buttons[A] ){ //Open
-          send_grasper_goal(0.03f);
+          send_grasper_goal(0.054f/2);
       }
       if (buttons[B]){ //Close
-          send_grasper_goal(0.0245f/2.0);
+          send_grasper_goal(0.024f/2.0);
       }
 
       //joint->joint_names.push_back("panda_finger_joint2");
@@ -341,15 +347,17 @@ public:
     }
 
     //Custom parameters for speed control
-    double cartesian_speed = 0.150;
+    double cartesian_speed_x = 0.100; // m/s
+    double cartesian_speed_y = 0.060; // m/s
+    double cartesian_speed_z = 0.080; // m/s
     //double rot_speed = 0.0; //0.20;
 
     // The bread and butter: map buttons to twist commands
-    double right_stick_y_val = axes[RIGHT_STICK_Y]*cartesian_speed;
-    double right_stick_x_val = axes[RIGHT_STICK_X]*cartesian_speed;
+    double right_stick_y_val = axes[RIGHT_STICK_Y]*cartesian_speed_y;
+    double right_stick_x_val = axes[RIGHT_STICK_X]*cartesian_speed_x;
     double lin_x_right = -(axes[RIGHT_TRIGGER] - AXIS_DEFAULTS.at(RIGHT_TRIGGER));
     double lin_x_left = (axes[LEFT_TRIGGER] - AXIS_DEFAULTS.at(LEFT_TRIGGER));
-    double shoulder_val = (lin_x_right + lin_x_left)*cartesian_speed;
+    double shoulder_val = (lin_x_right + lin_x_left)*0.5*cartesian_speed_z;
 
     //Assign 
     //NOTE: y and x have been swapped to match user position
@@ -396,7 +404,7 @@ public:
 
     auto goal_msg = GripperCommand::Goal();
     goal_msg.command.position = apperture_goal;
-    goal_msg.command.max_effort = 20.0;
+    goal_msg.command.max_effort = 15.0;
 
 
     if (!grasp_active ){

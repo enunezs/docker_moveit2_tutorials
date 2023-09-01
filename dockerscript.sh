@@ -1,6 +1,7 @@
 xhost +local:root
 
-docker image build -t ros2-moveit2 .     
+docker image build -t ros2-moveit2 .
+
 
 docker run -it \
 	--env="DISPLAY" \

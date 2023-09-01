@@ -151,4 +151,40 @@ def generate_launch_description():
     
 """
 
+"{header:{frame_id: "panda_link0" }, 
+joint_names:[panda_joint1, panda_joint2, panda_joint3, panda_joint4, panda_joint5, panda_joint6, panda_joint7], 
+points: [{positions:[0.32461454940247153 ,-0.46994696919150064 ,
+  -0.32823108966448095 ,
+  -2.3420321996129854 ,
+  -0.09516602596303166 ,
+  1.9612877086765625 ,
+  1.0181142925718683
+] }]}"
+
+ 
+"
+Per link control?
+
+ros2 topic pub /panda_arm_controller/joint_trajectory trajectory_msgs/msg/JointTrajectory "{header:{frame_id: "panda_link0" }, 
+joint_names: [panda_joint1, panda_joint2, panda_joint3, panda_joint4, panda_joint5, panda_joint6, panda_joint7], 
+points: [{positions:[
+    0.324 ,
+   -0.469 ,
+   -0.328 ,
+   -2.342 ,
+   -0.095 ,
+    1.961 ,
+    1.018
+],  velocities: [
+  -0.00010428550838266559 ,
+  0.0006120256983126306 ,
+  -0.0004899240415502688 ,
+  -0.0035932119354995817 ,
+  -0.00015493125821821376 ,
+  0.004194278256459273 ,
+  -0.00020438335257771766 ]
+ }]
+}"
+
+
 """
