@@ -56,8 +56,7 @@ RUN apt-get update && apt-get install -y \
 	ros-$ROS_DISTRO-rosidl-runtime-c \
 	ros-$ROS_DISTRO-builtin-interfaces \
 	ros-$ROS_DISTRO-unique-identifier-msgs \
-	ros-$ROS_DISTRO-trajectory-msgs \
-	ros-$ROS_DISTRO-moveit-hybrid-planning
+	ros-$ROS_DISTRO-trajectory-msgs
 
 # Magic?
 #RUN apt-get update &&  apt-get dist-upgrade -y
@@ -86,6 +85,11 @@ RUN source /opt/ros/$ROS_DISTRO/setup.bash && \
 ## Inject my modified scripts
 # Controller file & cmake file
 
+
+
+
+
+
 ## Inject to moveit2
 
 WORKDIR $HOME/ws_moveit2
@@ -99,10 +103,10 @@ RUN source /opt/ros/$ROS_DISTRO/setup.bash && \
 # Inject to moveit2 tutorials
 WORKDIR $HOME/ws_moveit2_tut
 #COPY servo_teleop.launch.py $HOME/ws_moveit2_tut/src/moveit2_tutorials/doc/realtime_servo/launch/
-COPY servo_teleop.launch.py $HOME/ws_moveit2_tut/src/moveit2_tutorials/doc/examples/realtime_servo/launch/
+COPY servo_teleop.launch.py $HOME/ws_moveit2_tut/src/moveit2_tutorials/doc/realtime_servo/launch/
 #COPY devel_servo_teleop.launch.py $HOME/ws_moveit2_tut/src/moveit2_tutorials/doc/realtime_servo/launch/
-COPY devel_servo_teleop.launch.py $HOME/ws_moveit2_tut/src/moveit2_tutorials/doc/examples/realtime_servo/launch/
-COPY humble_controller.launch.py $HOME/ws_moveit2_tut/src/moveit2_tutorials/doc/examples/realtime_servo/launch/
+COPY devel_servo_teleop.launch.py $HOME/ws_moveit2_tut/src/moveit2_tutorials/doc/realtime_servo/launch/
+COPY custom_controller.launch.py $HOME/ws_moveit2_tut/src/moveit2_tutorials/doc/realtime_servo/launch/
 
 RUN source /opt/ros/$ROS_DISTRO/setup.bash && \ 
 	colcon build --packages-select moveit2_tutorials --mixin release
@@ -119,11 +123,11 @@ RUN echo 'source /opt/ros/$ROS_DISTRO/setup.sh && source $HOME/ws_moveit2/instal
 
 #RUN echo 'ros2 launch moveit2_tutorials servo_teleop.launch.py' >> $HOME/.bashrc
 #RUN echo 'ros2 launch moveit2_tutorials devel_servo_teleop.launch.py' >> $HOME/.bashrc
-RUN echo 'ros2 launch moveit_servo servo_example.launch.py' >> $HOME/.bashrc
+#RUN echo 'ros2 launch moveit_servo servo_example.launch.py' >> $HOME/.bashrc
 #RUN echo 'ros2 run moveit2_tutorials servo_keyboard_input' >> $HOME/.bashrc
 
 
-
+RUN echo 'ros2 launch moveit2_tutorials custom_controller.launch.py' >> $HOME/.bashrc
 #RUN echo 'ros2 launch moveit2_tutorials humble_controller.launch.py' >> $HOME/.bashrc
  
 
