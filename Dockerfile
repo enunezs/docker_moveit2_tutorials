@@ -91,7 +91,6 @@ RUN source /opt/ros/$ROS_DISTRO/setup.bash && \
 
 
 ## Inject to moveit2
-
 WORKDIR $HOME/ws_moveit2
 COPY joystick_servo_example.cpp $HOME/ws_moveit2/src/moveit2/moveit_ros/moveit_servo/src/teleop_demo
 COPY CMakeLists.txt 			$HOME/ws_moveit2/src/moveit2/moveit_ros/moveit_servo
